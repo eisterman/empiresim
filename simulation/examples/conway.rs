@@ -1,10 +1,10 @@
-use simulation::{Simulation, rect_geom::RectGeometry};
+use simulation::{conway_sim::ConwaySimulation, rect_geom::RectGeometry};
 use raylib::prelude::*;
 use rand::Rng;
 use std::{thread, time::Duration};
 use simulation::geometry::Geometry;
 
-fn print_grid(sim: &Simulation<RectGeometry>, width: usize, height: usize) {
+fn print_grid(sim: &ConwaySimulation<RectGeometry>, width: usize, height: usize) {
     println!("\x1B[2J\x1B[1;1H"); // Clear screen and move cursor to top
     for y in 0..height {
         for x in 0..width {
@@ -31,7 +31,7 @@ fn main() {
     );
     
     // Create simulation
-    let mut sim = Simulation::new(&geometry);
+    let mut sim = ConwaySimulation::new(&geometry);
     
     // Populate with random values
     let mut rng = rand::rng();

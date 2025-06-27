@@ -1,17 +1,19 @@
 use raylib::prelude::*;
 use crate::geometry::*;
 
-pub(crate) struct InnerNCells {pub(crate) x: usize, pub(crate) y: usize}
+// TODO: Forse usare un vettore proprio castabile a raylib e' meglio per rendere la lib piu indip
+
+pub struct InnerNCells {pub x: usize, pub y: usize}
 impl InnerNCells {
-    pub(crate) fn vec2(&self) -> Vector2 {
+    pub fn vec2(&self) -> Vector2 {
         Vector2::new(self.x as f32, self.y as f32)
     }
 }
 
 pub struct RectGeometry {
-    pub(crate) geocenter: Vector2,
-    pub(crate) cells: InnerNCells,
-    pub(crate) celsize: Vector2,
+    pub geocenter: Vector2,
+    pub cells: InnerNCells,
+    pub celsize: Vector2,
 }
 
 impl RectGeometry {
