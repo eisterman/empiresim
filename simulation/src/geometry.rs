@@ -1,6 +1,7 @@
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GeoID(pub usize);
+// TODO: do we keep this DDD?
 
 pub trait Geometry {
     fn size(&self) -> usize;

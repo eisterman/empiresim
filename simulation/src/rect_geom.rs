@@ -16,6 +16,10 @@ pub struct RectGeometry {
 }
 
 impl RectGeometry {
+    pub fn new(geocenter: Vector2, xcells: usize, ycells: usize, celsize: Vector2) -> Self {
+        Self { geocenter, cells: InnerNCells{x: xcells, y: ycells}, celsize }
+    }
+    
     fn start(&self) -> Vector2 {
         self.geocenter - self.cells.vec2() * self.celsize / 2.0
     }
