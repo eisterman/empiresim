@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "empiresim",
+    "simulation",
+]
+resolver = "3"

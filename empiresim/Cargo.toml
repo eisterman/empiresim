@@ -1,0 +1,8 @@
+[package]
+name = "empiresim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+raylib = "5.5.1"
+simulation = { path = "../simulation" }
