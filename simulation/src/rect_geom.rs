@@ -1,47 +1,56 @@
 use raylib::prelude::*;
 use crate::geometry::*;
-use crate::rldrawable::RLDrawable;
 
-struct InnerNCells {x: usize, y: usize}
+pub(crate) struct InnerNCells {pub(crate) x: usize, pub(crate) y: usize}
 impl InnerNCells {
-    fn vec2(&self) -> Vector2 {
+    pub(crate) fn vec2(&self) -> Vector2 {
         Vector2::new(self.x as f32, self.y as f32)
     }
 }
 
 pub struct RectGeometry {
-    geocenter: Vector2,
-    cells: InnerNCells,
-    celsize: Vector2,
+    pub(crate) geocenter: Vector2,
+    pub(crate) cells: InnerNCells,
+    pub(crate) celsize: Vector2,
 }
 
 impl RectGeometry {
     pub fn new(geocenter: Vector2, xcells: usize, ycells: usize, celsize: Vector2) -> Self {
         Self { geocenter, cells: InnerNCells{x: xcells, y: ycells}, celsize }
     }
-    
-    fn start(&self) -> Vector2 {
+
+    pub fn start(&self) -> Vector2 {
         self.geocenter - self.cells.vec2() * self.celsize / 2.0
     }
 
-    fn cellcenter(&self, nx: usize, ny: usize) -> Vector2 {
+    pub fn cellcenter(&self, nx: usize, ny: usize) -> Vector2 {
         let n = Vector2::new(nx as f32, ny as f32);
         self.start() + (n + 0.5) * self.celsize
     }
 
-    fn cell2id(&self, nx: usize, ny: usize) -> GeoID {
+    pub fn cell2id(&self, nx: usize, ny: usize) -> GeoID {
         GeoID(ny * self.cells.x + nx)
     }
 
-    fn id2cell(&self, id: GeoID) -> (usize, usize) {
+    pub fn id2cell(&self, id: GeoID) -> (usize, usize) {
         (id.0 % self.cells.x, id.0 / self.cells.x)
     }
 
-    fn id2centercoord(&self, id: GeoID) -> Vector2 {
+    pub fn id2centercoord(&self, id: GeoID) -> Vector2 {
         let (nx, ny) = self.id2cell(id);
         self.cellcenter(nx, ny)
     }
 
+    // For Drawable Impl
+    pub fn cell_rectangle(&self, nx: i32, ny: i32) -> Rectangle {
+        let start = self.start();
+        Rectangle {
+            x: start.x + (nx as f32) * self.celsize.x,
+            y: start.y + (ny as f32) * self.celsize.y,
+            width: self.celsize.x,
+            height: self.celsize.y,
+        }
+    }
 }
 
 impl Geometry for RectGeometry {
@@ -70,12 +79,6 @@ impl Geometry for RectGeometry {
             }
         }
         result
-    }
-}
-
-impl RLDrawable for RectGeometry {
-    fn draw(&self, rl: &mut RaylibHandle) {
-        todo!()
     }
 }
 

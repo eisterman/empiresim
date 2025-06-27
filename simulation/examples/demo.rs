@@ -4,7 +4,7 @@ use rand::Rng;
 use std::{thread, time::Duration};
 use simulation::geometry::Geometry;
 
-fn print_grid(sim: &Simulation, width: usize, height: usize) {
+fn print_grid(sim: &Simulation<RectGeometry>, width: usize, height: usize) {
     println!("\x1B[2J\x1B[1;1H"); // Clear screen and move cursor to top
     for y in 0..height {
         for x in 0..width {

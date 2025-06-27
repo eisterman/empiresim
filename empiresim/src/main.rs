@@ -1,5 +1,8 @@
+use rand::Rng;
 use raylib::prelude::*;
-
+use simulation::geometry::Geometry;
+use simulation::rect_geom::RectGeometry;
+use simulation::{draw_gol_rect, Simulation};
 /*
  * Il piano della muerte e' finire tutto questo in 5 giorni.
  * L'obiettivo e' avere una prima mappa esagonale su cui far spannare la mia simulazione.
@@ -22,13 +25,6 @@ const YSTART: f32 = MAP_YCENTER - (YCELLS as f32) * YCELSIZE / 2.0;
 
 const XEND: f32 = XSTART + (XCELLS as f32) * XCELSIZE;
 const YEND: f32 = YSTART + (YCELLS as f32) * YCELSIZE;
-
-fn cell_center_2d(nx: i32, ny: i32) -> Vector2 {
-    Vector2::new(
-        XSTART + (nx as f32 + 0.5) * XCELSIZE,
-        YSTART + (ny as f32 + 0.5) * YCELSIZE,
-    )
-}
 
 fn cell_rectangle(nx: i32, ny: i32) -> Rectangle {
     Rectangle {
@@ -102,16 +98,30 @@ fn main() {
         offset: Vector2::new(SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0),
         target: Vector2::zero(),
         rotation: 0.0,
-        zoom: 1.0,
+        zoom: 0.04,
     };
 
-    rl.set_target_fps(60);
+    // Init Simulation
+    let geometry = RectGeometry::new(
+        Vector2::new(0.0, 0.0),
+        300,
+        200,
+        Vector2::new(100.0, 100.0)
+    );
+    let mut sim = Simulation::new(&geometry);
+    let mut rng = rand::rng();
+    for i in 0..geometry.size() {
+        if let Some(state) = sim.get_mut(i) {
+            state.val = if rng.random::<f32>() < 0.3 { 1 } else { 0 };
+        }
+    }
+
+    rl.set_target_fps(10);
 
     while !rl.window_should_close() {
         // Update
         //----------------------------------------------------------------------------------
         my_camera_update(&mut camera, &mut rl);
-
         // Draw
         //----------------------------------------------------------------------------------
         let mut d = rl.begin_drawing(&thread);
@@ -126,10 +136,13 @@ fn main() {
             // d2d.draw_rectangle_rec(Rectangle{x:100.0, y:0.0, width:5.0, height:5.0}, Color::RED);
             // d2d.draw_rectangle_rec(Rectangle{x:0.0, y:100.0, width:5.0, height:5.0}, Color::BLUE);
             // END DRAW AXIS
-            draw_2d_map(&mut d2d);
+            // draw_2d_map(&mut d2d);
+            draw_gol_rect(&mut d2d, &sim);
         }
 
         d.draw_fps(10, 10);
+        // Step?
+        sim.step();
     }
     // De-Initialization
     //--------------------------------------------------------------------------------------

@@ -1,30 +1,35 @@
+use raylib::prelude::*;
 use crate::geometry::{GeoID, Geometry};
+use crate::rect_geom::RectGeometry;
 
 pub mod geometry;
 pub mod rect_geom;
-pub mod rldrawable;
 
 #[derive(Clone)]
-pub struct State {
+pub struct State2 {
     pub val: u8
 }
 
-pub struct Simulation<'a> {
-    geo: &'a dyn Geometry,
-    states: Vec<State>,
+pub struct Simulation<'a, T> where T: Geometry {
+    geo: &'a T,
+    states: Vec<State2>,
 }
 
-impl<'a> Simulation<'a> {
-    pub fn new(geo: &'a dyn Geometry) -> Self {
-        let states = vec![State{val: 0}; geo.size()];
+impl<'a, T> Simulation<'a, T> where T: Geometry {
+    pub fn new(geo: &'a T) -> Self {
+        let states = vec![State2 {val: 0}; geo.size()];
         Self{ geo, states }
     }
 
-    pub fn get(&self, id: usize) -> Option<&State> {
+    pub fn geo(&self) -> &'a T {
+        self.geo
+    }
+
+    pub fn get(&self, id: usize) -> Option<&State2> {
         self.states.get(id)
     }
     
-    pub fn get_mut(&mut self, id: usize) -> Option<&mut State> {
+    pub fn get_mut(&mut self, id: usize) -> Option<&mut State2> {
         self.states.get_mut(id)
     }
 
@@ -42,6 +47,40 @@ impl<'a> Simulation<'a> {
                 if alives == 3 { 1 } else { 0 }
             };
         }
+    }
+}
+
+pub fn draw_gol_rect(d: &mut RaylibDrawHandle, s: &Simulation<RectGeometry>) {
+    let geo = s.geo();
+    let start = geo.start();
+    for nx in 0..geo.cells.x {
+        for ny in 0..geo.cells.y {
+            // Here I need to know what State it is.
+            // TODO: This function works for all Simulation that use this specific State and RectGeometry.
+            //  So probably we can generalize the State OUTSIDE the simulation?
+            let color = if s.states.get(geo.cell2id(nx, ny).0).unwrap().val > 0 {Color::WHITE} else {Color::BLACK};
+            d.draw_rectangle_rec(
+                Rectangle {
+                    x: start.x + (nx as f32) * geo.celsize.x,
+                    y: start.y + (ny as f32) * geo.celsize.y,
+                    width: geo.celsize.x,
+                    height: geo.celsize.y,
+                }, color);
+        }
+    }
+    for nx in 0..=geo.cells.x {
+        d.draw_line_v(
+            Vector2::new(start.x + nx as f32 * geo.celsize.x, start.y),
+            Vector2::new(start.x + nx as f32 * geo.celsize.x, start.y + geo.cells.y as f32 * geo.celsize.y),
+            Color::BLACK,
+        );
+    }
+    for ny in 0..=geo.cells.y {
+        d.draw_line_v(
+            Vector2::new(start.x, start.y + ny as f32 * geo.celsize.y),
+            Vector2::new(start.x + geo.cells.x as f32 * geo.celsize.x, start.y + ny as f32 * geo.celsize.y),
+            Color::BLACK,
+        );
     }
 }
 
