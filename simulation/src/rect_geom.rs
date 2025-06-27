@@ -55,18 +55,19 @@ impl Geometry for RectGeometry {
 
     fn neighbours(&self, id: GeoID) -> Vec<GeoID> {
         let (x, y) = self.id2cell(id);
-        let mut result: Vec<GeoID> = Vec::with_capacity(4);
-        if x > 0 {
-            result.push(self.cell2id(x - 1, y));
-        }
-        if x < self.cells.x - 1 {
-            result.push(self.cell2id(x + 1, y));
-        }
-        if y > 0 {
-            result.push(self.cell2id(x, y - 1));
-        }
-        if y < self.cells.y - 1 {
-            result.push(self.cell2id(x, y + 1));
+        let mut result: Vec<GeoID> = Vec::with_capacity(8);
+        // All 8 directions
+        for dx in -1..=1_i32 {
+            for dy in -1..=1_i32 {
+                if dx == 0 && dy == 0 {
+                    continue; // Skip the center cell
+                }
+                let nx = x as i32 + dx;
+                let ny = y as i32 + dy;
+                if nx >= 0 && nx < self.cells.x as i32 && ny >= 0 && ny < self.cells.y as i32 {
+                    result.push(self.cell2id(nx as usize, ny as usize));
+                }
+            }
         }
         result
     }
@@ -128,11 +129,17 @@ mod tests {
         let geom = setup();
         let id = geom.cell2id(2, 3);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 4);
+        assert_eq!(neighbours.len(), 8);
+        // Orthogonal neighbors
         assert!(neighbours.contains(&geom.cell2id(1, 3)));
         assert!(neighbours.contains(&geom.cell2id(3, 3)));
         assert!(neighbours.contains(&geom.cell2id(2, 2)));
         assert!(neighbours.contains(&geom.cell2id(2, 4)));
+        // Diagonal neighbors
+        assert!(neighbours.contains(&geom.cell2id(1, 2)));
+        assert!(neighbours.contains(&geom.cell2id(3, 2)));
+        assert!(neighbours.contains(&geom.cell2id(1, 4)));
+        assert!(neighbours.contains(&geom.cell2id(3, 4)));
     }
 
     #[test]
@@ -140,36 +147,45 @@ mod tests {
         let geom = setup();
         let id = geom.cell2id(0, 0);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 2);
+        assert_eq!(neighbours.len(), 3);
         assert!(neighbours.contains(&geom.cell2id(1, 0)));
         assert!(neighbours.contains(&geom.cell2id(0, 1)));
+        assert!(neighbours.contains(&geom.cell2id(1, 1)));
     }
 
     #[test]
     fn test_neighbours_vertex() {
         let geom = setup();
+        // Top-left corner (0,0)
         let id = geom.cell2id(0, 0);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 2);
+        assert_eq!(neighbours.len(), 3);
         assert!(neighbours.contains(&geom.cell2id(1, 0)));
         assert!(neighbours.contains(&geom.cell2id(0, 1)));
+        assert!(neighbours.contains(&geom.cell2id(1, 1)));
 
+        // Top-right corner (4,0)
         let id = geom.cell2id(4, 0);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 2);
+        assert_eq!(neighbours.len(), 3);
         assert!(neighbours.contains(&geom.cell2id(3, 0)));
         assert!(neighbours.contains(&geom.cell2id(4, 1)));
+        assert!(neighbours.contains(&geom.cell2id(3, 1)));
 
+        // Bottom-left corner (0,7)
         let id = geom.cell2id(0, 7);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 2);
+        assert_eq!(neighbours.len(), 3);
         assert!(neighbours.contains(&geom.cell2id(1, 7)));
         assert!(neighbours.contains(&geom.cell2id(0, 6)));
+        assert!(neighbours.contains(&geom.cell2id(1, 6)));
 
+        // Bottom-right corner (4,7)
         let id = geom.cell2id(4, 7);
         let neighbours = geom.neighbours(id);
-        assert_eq!(neighbours.len(), 2);
+        assert_eq!(neighbours.len(), 3);
         assert!(neighbours.contains(&geom.cell2id(3, 7)));
         assert!(neighbours.contains(&geom.cell2id(4, 6)));
+        assert!(neighbours.contains(&geom.cell2id(3, 6)));
     }
 }
