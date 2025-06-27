@@ -51,17 +51,121 @@ impl Geometry for RectGeometry {
 
     fn neighbours(&self, id: GeoID) -> Vec<GeoID> {
         let (x, y) = self.id2cell(id);
-        vec![
-            self.cell2id(x-1, y),
-            self.cell2id(x+1, y),
-            self.cell2id(x, y-1),
-            self.cell2id(x, y+1),
-        ]
+        let mut result: Vec<GeoID> = Vec::with_capacity(4);
+        if x > 0 {
+            result.push(self.cell2id(x - 1, y));
+        }
+        if x < self.cells.x - 1 {
+            result.push(self.cell2id(x + 1, y));
+        }
+        if y > 0 {
+            result.push(self.cell2id(x, y - 1));
+        }
+        if y < self.cells.y - 1 {
+            result.push(self.cell2id(x, y + 1));
+        }
+        result
     }
 }
 
 impl RLDrawable for RectGeometry {
     fn draw(&self, rl: &mut RaylibHandle) {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup() -> RectGeometry {
+        RectGeometry {
+            geocenter: Vector2::new(100.0, 200.0),
+            cells: InnerNCells { x: 5, y: 8 },
+            celsize: Vector2::new(10.0, 5.0),
+        }
+    }
+
+    #[test]
+    fn test_size() {
+        let geom = setup();
+        assert_eq!(geom.size(), 40);
+    }
+
+    #[test]
+    fn test_cell2id_and_id2cell() {
+        let geom = setup();
+        let id = geom.cell2id(3, 4);
+        assert_eq!(id, GeoID(23));
+        let (x, y) = geom.id2cell(id);
+        assert_eq!(x, 3);
+        assert_eq!(y, 4);
+    }
+
+    #[test]
+    fn test_id2centercoord() {
+        let geom = setup();
+        let id = geom.cell2id(0, 0);
+        let center = geom.id2centercoord(id);
+        assert_eq!(center, Vector2::new(80.0, 182.5));
+    }
+
+    #[test]
+    fn test_distance() {
+        let geom = setup();
+        let id1 = geom.cell2id(0, 0);
+        let id2 = geom.cell2id(1, 0);
+        let distance = geom.distance(id1, id2);
+        assert_eq!(distance, 10.0);
+    }
+
+    #[test]
+    fn test_neighbours() {
+        let geom = setup();
+        let id = geom.cell2id(2, 3);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 4);
+        assert!(neighbours.contains(&geom.cell2id(1, 3)));
+        assert!(neighbours.contains(&geom.cell2id(3, 3)));
+        assert!(neighbours.contains(&geom.cell2id(2, 2)));
+        assert!(neighbours.contains(&geom.cell2id(2, 4)));
+    }
+
+    #[test]
+    fn test_neighbours_edge() {
+        let geom = setup();
+        let id = geom.cell2id(0, 0);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 2);
+        assert!(neighbours.contains(&geom.cell2id(1, 0)));
+        assert!(neighbours.contains(&geom.cell2id(0, 1)));
+    }
+
+    #[test]
+    fn test_neighbours_vertex() {
+        let geom = setup();
+        let id = geom.cell2id(0, 0);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 2);
+        assert!(neighbours.contains(&geom.cell2id(1, 0)));
+        assert!(neighbours.contains(&geom.cell2id(0, 1)));
+
+        let id = geom.cell2id(4, 0);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 2);
+        assert!(neighbours.contains(&geom.cell2id(3, 0)));
+        assert!(neighbours.contains(&geom.cell2id(4, 1)));
+
+        let id = geom.cell2id(0, 7);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 2);
+        assert!(neighbours.contains(&geom.cell2id(1, 7)));
+        assert!(neighbours.contains(&geom.cell2id(0, 6)));
+
+        let id = geom.cell2id(4, 7);
+        let neighbours = geom.neighbours(id);
+        assert_eq!(neighbours.len(), 2);
+        assert!(neighbours.contains(&geom.cell2id(3, 7)));
+        assert!(neighbours.contains(&geom.cell2id(4, 6)));
     }
 }
