@@ -79,7 +79,7 @@ fn main() {
         200,
         Vector2::new(100.0, 100.0)
     );
-    let mut sim = ConwaySimulation::new(&geometry);
+    let mut sim = ConwaySimulation::new(&geometry, &[3], &[2,3]);
     let mut rng = rand::rng();
     for i in 0..geometry.size() {
         if let Some(state) = sim.get_mut(i) {

@@ -11,6 +11,8 @@ pub struct State {
 pub struct ConwaySimulation<'a, T> where T: Geometry {
     geo: &'a T,
     states: Vec<State>,
+    birth: Vec<u8>,
+    stay: Vec<u8>,
 }
 
 impl<'a, T> Simulation for ConwaySimulation<'a, T> where T: Geometry{
@@ -27,9 +29,9 @@ impl<'a, T> Simulation for ConwaySimulation<'a, T> where T: Geometry{
 }
 
 impl<'a, T> ConwaySimulation<'a, T> where T: Geometry {
-    pub fn new(geo: &'a T) -> Self {
+    pub fn new(geo: &'a T, birth: &[u8], stay: &[u8]) -> Self {
         let states = vec![State {val: 0}; geo.size()];
-        Self{ geo, states }
+        Self{ geo, states, birth: birth.to_vec(), stay: stay.to_vec() }
     }
 
     pub fn geo(&self) -> &'a T {
@@ -54,9 +56,9 @@ impl<'a, T> ConwaySimulation<'a, T> where T: Geometry {
             });
             // TODO: Generalize as attributes!
             s.val = if s.val > 0 {
-                if alives == 2 || alives == 3 { 1 } else { 0 }
+                if self.stay.contains(&alives) { 1 } else { 0 }
             } else {
-                if alives == 3 { 1 } else { 0 }
+                if self.birth.contains(&alives) { 1 } else { 0 }
             };
         }
     }
@@ -112,7 +114,7 @@ mod tests {
             Vector2::new(1.0, 1.0)
         );
 
-        let mut sim = ConwaySimulation::new(&geometry);
+        let mut sim = ConwaySimulation::new(&geometry, &[3], &[2,3]);
 
         // Set up glider pattern at position (1,1)
         // Pattern:

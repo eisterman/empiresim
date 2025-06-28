@@ -1,8 +1,5 @@
-use rand::Rng;
 use raylib::prelude::*;
-use simulation::geometry::Geometry;
-use simulation::rect_geom::RectGeometry;
-use simulation::conway_sim::{draw_gol_rect, ConwaySimulation};
+
 /*
  * Il piano della muerte e' finire tutto questo in 5 giorni.
  * L'obiettivo e' avere una prima mappa esagonale su cui far spannare la mia simulazione.
@@ -13,8 +10,6 @@ use simulation::conway_sim::{draw_gol_rect, ConwaySimulation};
 
 // Map data
 // 0,0 at lower xy value, xcells,ycells at higher xy value
-// TODO: Rimuovere queste costanti, e trovare il modo per la camera di prendere
-//  gli xstart/xend ystart/yend dalla geometria, o comunque calcolati al first boot.
 const MAP_XCENTER: f32 = 0.0;
 const MAP_YCENTER: f32 = 0.0;
 const XCELLS: i32 = 300;
@@ -27,6 +22,44 @@ const YSTART: f32 = MAP_YCENTER - (YCELLS as f32) * YCELSIZE / 2.0;
 
 const XEND: f32 = XSTART + (XCELLS as f32) * XCELSIZE;
 const YEND: f32 = YSTART + (YCELLS as f32) * YCELSIZE;
+
+fn cell_center_2d(nx: i32, ny: i32) -> Vector2 {
+    Vector2::new(
+        XSTART + (nx as f32 + 0.5) * XCELSIZE,
+        YSTART + (ny as f32 + 0.5) * YCELSIZE,
+    )
+}
+
+fn cell_rectangle(nx: i32, ny: i32) -> Rectangle {
+    Rectangle {
+        x: XSTART + (nx as f32) * XCELSIZE,
+        y: YSTART + (ny as f32) * YCELSIZE,
+        width: XCELSIZE,
+        height: YCELSIZE,
+    }
+}
+
+fn draw_2d_map(d: &mut RaylibDrawHandle) {
+    for nx in 0..XCELLS {
+        for ny in 0..YCELLS {
+            d.draw_rectangle_rec(cell_rectangle(nx, ny), Color::RED);
+        }
+    }
+    for nx in 0..=XCELLS {
+        d.draw_line_v(
+            Vector2::new(XSTART + nx as f32 * XCELSIZE, YSTART),
+            Vector2::new(XSTART + nx as f32 * XCELSIZE, YSTART + YCELLS as f32 * YCELSIZE),
+            Color::BLACK,
+        );
+    }
+    for ny in 0..=YCELLS {
+        d.draw_line_v(
+            Vector2::new(XSTART, YSTART + ny as f32 * YCELSIZE),
+            Vector2::new(XSTART + XCELLS as f32 * XCELSIZE, YSTART + ny as f32 * YCELSIZE),
+            Color::BLACK,
+        );
+    }
+}
 
 const BASECAMERASPEED: f32 = 5.0;
 
@@ -69,30 +102,16 @@ fn main() {
         offset: Vector2::new(SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0),
         target: Vector2::zero(),
         rotation: 0.0,
-        zoom: 0.04,
+        zoom: 1.0,
     };
 
-    // Init Simulation
-    let geometry = RectGeometry::new(
-        Vector2::new(0.0, 0.0),
-        300,
-        200,
-        Vector2::new(100.0, 100.0)
-    );
-    let mut sim = ConwaySimulation::new(&geometry);
-    let mut rng = rand::rng();
-    for i in 0..geometry.size() {
-        if let Some(state) = sim.get_mut(i) {
-            state.val = if rng.random::<f32>() < 0.3 { 1 } else { 0 };
-        }
-    }
-
-    rl.set_target_fps(10);
+    rl.set_target_fps(60);
 
     while !rl.window_should_close() {
         // Update
         //----------------------------------------------------------------------------------
         my_camera_update(&mut camera, &mut rl);
+
         // Draw
         //----------------------------------------------------------------------------------
         let mut d = rl.begin_drawing(&thread);
@@ -107,13 +126,10 @@ fn main() {
             // d2d.draw_rectangle_rec(Rectangle{x:100.0, y:0.0, width:5.0, height:5.0}, Color::RED);
             // d2d.draw_rectangle_rec(Rectangle{x:0.0, y:100.0, width:5.0, height:5.0}, Color::BLUE);
             // END DRAW AXIS
-            // draw_2d_map(&mut d2d);
-            draw_gol_rect(&mut d2d, &sim);
+            draw_2d_map(&mut d2d);
         }
 
         d.draw_fps(10, 10);
-        // Step?
-        sim.step();
     }
     // De-Initialization
     //--------------------------------------------------------------------------------------

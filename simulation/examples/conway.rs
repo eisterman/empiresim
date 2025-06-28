@@ -31,7 +31,7 @@ fn main() {
     );
     
     // Create simulation
-    let mut sim = ConwaySimulation::new(&geometry);
+    let mut sim = ConwaySimulation::new(&geometry, &[3], &[2,3]);
     
     // Populate with random values
     let mut rng = rand::rng();
