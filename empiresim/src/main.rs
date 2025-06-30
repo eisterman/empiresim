@@ -23,6 +23,27 @@ const YSTART: f32 = MAP_YCENTER - (YCELLS as f32) * YCELSIZE / 2.0;
 const XEND: f32 = XSTART + (XCELLS as f32) * XCELSIZE;
 const YEND: f32 = YSTART + (YCELLS as f32) * YCELSIZE;
 
+fn draw_hexa_test(d: &mut RaylibDrawHandle) {
+    const XHEXS: i32 = 10;
+    const YHEXS: i32 = 5;
+
+    const SIZE: f32 = 50.0;
+    // W = sqrt(3)*size and H = 2*size
+    let w = f32::sqrt(3.0)*SIZE;
+    let h = 2.0*SIZE;
+    for ny in 0..YHEXS {
+        let row_y_center = 0.5*h + (0.75*h)*ny as f32;
+        let row_offset = if ny % 2 == 0 { 0.5*w } else { w };
+        for nx in 0..XHEXS {
+            let col_x_center = row_offset + nx as f32*w;
+            d.draw_poly_lines(Vector2{x: col_x_center, y: row_y_center}, 6, SIZE, 90.0, Color::RED)
+        }
+    }
+    let rect_width = if YHEXS >= 2 { 0.5*w } else { 0.0 } + (XHEXS as f32)*w;
+    let rect_height = h + if YHEXS >= 2 { 0.75*h*(YHEXS-1) as f32 } else { 0.0 };
+    d.draw_rectangle_lines_ex(Rectangle{x: 0.0, y:0.0, width: rect_width, height: rect_height}, 1.0, Color::GRAY)
+}
+
 fn cell_center_2d(nx: i32, ny: i32) -> Vector2 {
     Vector2::new(
         XSTART + (nx as f32 + 0.5) * XCELSIZE,
@@ -126,7 +147,8 @@ fn main() {
             // d2d.draw_rectangle_rec(Rectangle{x:100.0, y:0.0, width:5.0, height:5.0}, Color::RED);
             // d2d.draw_rectangle_rec(Rectangle{x:0.0, y:100.0, width:5.0, height:5.0}, Color::BLUE);
             // END DRAW AXIS
-            draw_2d_map(&mut d2d);
+            // draw_2d_map(&mut d2d);
+            draw_hexa_test(&mut d2d);
         }
 
         d.draw_fps(10, 10);

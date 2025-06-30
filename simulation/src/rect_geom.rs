@@ -10,6 +10,9 @@ impl InnerNCells {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RectGeoID(pub usize);
+
 pub struct RectGeometry {
     pub geocenter: Vector2,
     pub cells: InnerNCells,
@@ -30,15 +33,15 @@ impl RectGeometry {
         self.start() + (n + 0.5) * self.celsize
     }
 
-    pub fn cell2id(&self, nx: usize, ny: usize) -> GeoID {
-        GeoID(ny * self.cells.x + nx)
+    pub fn cell2id(&self, nx: usize, ny: usize) -> RectGeoID {
+        RectGeoID(ny * self.cells.x + nx)
     }
 
-    pub fn id2cell(&self, id: GeoID) -> (usize, usize) {
+    pub fn id2cell(&self, id: RectGeoID) -> (usize, usize) {
         (id.0 % self.cells.x, id.0 / self.cells.x)
     }
 
-    pub fn id2centercoord(&self, id: GeoID) -> Vector2 {
+    pub fn id2centercoord(&self, id: RectGeoID) -> Vector2 {
         let (nx, ny) = self.id2cell(id);
         self.cellcenter(nx, ny)
     }
@@ -56,17 +59,19 @@ impl RectGeometry {
 }
 
 impl Geometry for RectGeometry {
+    type ID = RectGeoID;
+    
     fn size(&self) -> usize {
         self.cells.x * self.cells.y
     }
 
-    fn distance(&self, id1: GeoID, id2: GeoID) -> f32 {
+    fn distance(&self, id1: Self::ID, id2: Self::ID) -> f32 {
         self.id2centercoord(id1).distance_to(self.id2centercoord(id2))
     }
 
-    fn neighbours(&self, id: GeoID) -> Vec<GeoID> {
+    fn neighbours(&self, id: Self::ID) -> Vec<Self::ID> {
         let (x, y) = self.id2cell(id);
-        let mut result: Vec<GeoID> = Vec::with_capacity(8);
+        let mut result: Vec<RectGeoID> = Vec::with_capacity(8);
         // All 8 directions
         for dx in -1..=1_i32 {
             for dy in -1..=1_i32 {
@@ -106,7 +111,7 @@ mod tests {
     fn test_cell2id_and_id2cell() {
         let geom = setup();
         let id = geom.cell2id(3, 4);
-        assert_eq!(id, GeoID(23));
+        assert_eq!(id, RectGeoID(23));
         let (x, y) = geom.id2cell(id);
         assert_eq!(x, 3);
         assert_eq!(y, 4);

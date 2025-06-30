@@ -1,6 +1,6 @@
 use raylib::prelude::*;
-use crate::geometry::{GeoID, Geometry};
-use crate::rect_geom::RectGeometry;
+use crate::geometry::Geometry;
+use crate::rect_geom::{RectGeoID, RectGeometry};
 use crate::simulation::Simulation;
 
 #[derive(Clone)]
@@ -45,11 +45,18 @@ impl<'a, T> ConwaySimulation<'a, T> where T: Geometry {
     pub fn get_mut(&mut self, id: usize) -> Option<&mut State> {
         self.states.get_mut(id)
     }
+}
 
+// TODO: This function expect the GeoID to be a single incremental sequential value!
+//  So to generalize we need a way to specify that a GeoID is a *SEQUENTIAL* one.
+//  If that is no easily writable, we need to remove the generalization for Geometry.
+//  The GeoID is not other than a unique identificator for an element of the geometry.
+//  It can be a single number, two or three numbers and so on!
+impl<'a, T> ConwaySimulation<'a, T> where T: Geometry<ID = RectGeoID> {
     pub fn step(&mut self) {
         let prev_state = self.states.clone();
         for (i, s) in self.states.iter_mut().enumerate() {
-            let id = GeoID(i);
+            let id = RectGeoID(i);
             let neighbours = self.geo.neighbours(id);
             let alives = neighbours.iter().fold(0_u8, |acc, gid| {
                 if prev_state.get(gid.0).unwrap().val > 0 { acc+1 } else { acc }
