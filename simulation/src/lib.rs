@@ -3,4 +3,4 @@ pub mod rect_geom;
 pub mod simulation;
 pub mod conway_sim;
 pub mod hex_geom;
-mod hex_conway_sim;
+pub mod hex_conway_sim;
