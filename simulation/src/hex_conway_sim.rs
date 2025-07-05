@@ -59,8 +59,8 @@ impl<'a> HexConwaySimulation<'a> {
     pub fn draw(&mut self, d: &mut RaylibDrawHandle) {
         // TODO: not using all the parameters!
         // W = sqrt(3)*size and H = 2*size
-        let w = f32::sqrt(3.0)*self.geo.size;
-        let h = 2.0*self.geo.size;
+        let w = self.geo.hex_width();
+        let h = self.geo.hex_height();
         for (offq, qline) in self.states.iter().enumerate() {
             // let q = offq as isize + self.minmax.min_q;
             // offq from 0 to max_q - min_q, so analogue to ny
@@ -76,6 +76,6 @@ impl<'a> HexConwaySimulation<'a> {
             }
         }
         let rect = self.geo.rect();
-        d.draw_rectangle_lines_ex(rect, 1.0, Color::GRAY)
+        d.draw_rectangle_lines_ex(rect, 10.0, Color::GRAY)
     }
 }

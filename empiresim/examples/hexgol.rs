@@ -55,8 +55,8 @@ fn main() {
     // Init Simulation
     let geo = HexGeometry::new(
         Vector2{x: 0.0, y: 0.0},
-        200,
-        100,
+        10,
+        5,
         50.0
     );
     let mut sim = HexConwaySimulation::new(&geo, &[2], &[3,5]); //no B3/S2,3 but B2/S3,5

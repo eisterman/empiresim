@@ -29,6 +29,7 @@ pub struct OffsetCoord {
 
 // CubeCoord is a Vector3 with x = q, y = r, z = s
 
+#[derive(Debug)]
 pub struct AxialCoord {
     pub q: isize,
     pub r: isize
@@ -46,19 +47,22 @@ impl AxialCoord {
 
 pub struct HexGeometry {
     pub origin: Vector2,
-    pub xhexs: usize,
-    pub yhexs: usize,
+    pub cols: usize,
+    pub rows: usize,
     pub size: f32,
     minmax: MinMaxAxial,
 }
 
 impl HexGeometry {
-    pub fn new(origin: Vector2, xhexs: usize, yhexs: usize, size: f32) -> Self {
+    pub fn new(origin: Vector2, cols: usize, rows: usize, size: f32) -> Self {
         // Preload minmax and cache it
-        let lower_left = Self::offset_to_axial(OffsetCoord{x: 0, y: yhexs as isize -1});
-        let lower_right = Self::offset_to_axial(OffsetCoord{x: xhexs as isize - 1, y: yhexs as isize -1});
-        let minmax = MinMaxAxial{ min_q: lower_left.q, max_q: lower_right.q, min_r: 0, max_r: lower_right.r};
-        Self{origin, xhexs, yhexs, size, minmax}
+        let lower_left = Self::offset_to_axial(OffsetCoord{x: 0, y: rows as isize -1});
+        let upper_left = Self::offset_to_axial(OffsetCoord{x: 0, y: 0});
+        let upper_right = Self::offset_to_axial(OffsetCoord{x: cols as isize - 1, y: 0});
+        let lower_right = Self::offset_to_axial(OffsetCoord{x: cols as isize - 1, y: rows as isize -1});
+        let minmax = MinMaxAxial{ min_q: lower_left.q, max_q: upper_right.q+1, min_r: upper_left.r, max_r: lower_right.r+1};
+        println!("{:?} {:?} {}", minmax, lower_right, rows as isize -1);
+        Self{origin, cols, rows, size, minmax}
     }
 
     // pub fn seq_to_offset(&self, id: SeqID) -> OffsetCoord {
@@ -71,7 +75,7 @@ impl HexGeometry {
         // NOTE: this algorithm uses the offset center as center
         let parity = o.y & 1; // This gives 0 and 1 even for negative numbers!
         let q = o.x - (o.y - parity) / 2;
-        let r = o.x;
+        let r = o.y;
         AxialCoord{q, r}
     }
 
@@ -106,19 +110,31 @@ impl HexGeometry {
     pub fn rect(&self) -> Rectangle {
         let w = self.hex_width();
         let h = self.hex_height();
+        let height = h + if self.rows > 1 { (self.rows -1) as f32*0.75*h } else { 0.0 };
+        let width = (self.cols as f32)*w + if self.rows > 1 { 0.5*w } else { 0.0 };
         Rectangle{
             x: self.origin.x,
             y: self.origin.y,
-            width: if self.yhexs >= 2 { 0.5*w } else { 0.0 } + (self.xhexs as f32)*w,
-            height: h + if self.yhexs >= 2 { 0.75*h*(self.yhexs-1) as f32 } else { 0.0 }
+            height,
+            width,
+            // height: if self.rows >= 2 { 0.5*w } else { 0.0 } + (self.cols as f32)*w,
+            // width: h + if self.rows >= 2 { 0.75*h*(self.rows -1) as f32 } else { 0.0 },
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MinMaxAxial {
+    /// Maxs are the last usable index. 199 means [199] is valid but [200] not.
     pub min_q: isize,
     pub max_q: isize,
     pub min_r: isize, // = 0
     pub max_r: isize,
+}
+
+impl MinMaxAxial {
+    pub fn validate(&self, a: AxialCoord) -> bool {
+        self.min_q <= a.q && a.q < self.max_q
+            && self.min_r <= a.r && a.r < self.max_r
+    }
 }
