@@ -45,18 +45,11 @@ fn main() {
         .title("SQUALONE SQUALOTTO QUANTO E' BELLO")
         .build();
 
-    let mut camera = Camera2D {
-        offset: Vector2::new(SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0),
-        target: Vector2::zero(),
-        rotation: 0.0,
-        zoom: 0.2,
-    };
-
     // Init Simulation
     let geo = HexGeometry::new(
         Vector2{x: 0.0, y: 0.0},
-        10,
-        5,
+        200,
+        100,
         50.0
     );
     let mut sim = HexConwaySimulation::new(&geo, &[2], &[3,5]); //no B3/S2,3 but B2/S3,5
@@ -69,8 +62,15 @@ fn main() {
 
     let rect = geo.rect();
 
+    let mut camera = Camera2D {
+        offset: Vector2::new(SCREEN_WIDTH as f32 / 2.0, SCREEN_HEIGHT as f32 / 2.0),
+        target: Vector2{x: rect.x+0.5*rect.width, y: rect.y+0.5*rect.height},
+        rotation: 0.0,
+        zoom: 0.1,
+    };
+
     let camera_settings = CameraSettings{
-        basespeed: 20.0,
+        basespeed: 40.0,
         start: Vector2{x: rect.x, y: rect.y},
         end: Vector2{x: rect.x+rect.width, y: rect.y+rect.height},
     };
@@ -81,6 +81,13 @@ fn main() {
         // Update
         //----------------------------------------------------------------------------------
         my_camera_update(&mut camera, &mut rl, &camera_settings);
+        if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
+            for row in sim.states.iter_mut() {
+                for s in row.iter_mut() {
+                    *s = if rng.random::<f32>() < 0.3 { 1 } else { 0 };
+                }
+            }
+        }
 
         // Draw
         //----------------------------------------------------------------------------------

@@ -64,6 +64,6 @@ impl<'a> HexConwaySimulation<'a> {
         rect.width += 2.0*line_thick;
         rect.y -= line_thick;
         rect.height += 2.0*line_thick;
-        d.draw_rectangle_lines_ex(rect, line_thick, Color::GRAY)
+        d.draw_rectangle_lines_ex(rect, line_thick, Color::GRAY.alpha(0.5))
     }
 }
