@@ -1,10 +1,12 @@
+use std::time::{Duration, Instant};
 use noise::{NoiseFn, self};
 use raylib::color::Color;
 use raylib::drawing::{RaylibDraw, RaylibDrawHandle};
 use raylib::math::{Vector2};
 use rand::{Rng};
 use raylib::prelude::*;
-use simulation::hex_geom::{HexGeometry, OffsetCoord};
+use simulation::hex_geom::{AxialCoord, HexGeometry, OffsetCoord};
+use crate::OverlayState::NotClicked;
 
 fn empire_id_to_color(eid: u8) -> Color {
     let layer: u8 = 40;
@@ -20,7 +22,9 @@ fn empire_id_to_color(eid: u8) -> Color {
     Color::color_from_hsv(hue, sat, val)
 }
 
+#[derive(Clone, Debug)]
 pub struct Empire {
+    id: STATE,
     name: String,
 }
 
@@ -36,7 +40,7 @@ const SEA: STATE = 0;
 const EARTH: STATE = 1;
 
 impl<'a> HexSimulation<'a> {
-    pub fn new(geo: &'a HexGeometry, birth: &[u8], stay: &[u8]) -> Self {
+    pub fn new(geo: &'a HexGeometry) -> Self {
         let mut states = vec![vec![SEA; geo.cols]; geo.rows];
         let noise = noise::Fbm::<noise::Perlin>::new(2);
         for (y, row) in states.iter_mut().enumerate() {
@@ -161,14 +165,38 @@ impl<'a> HexSimulation<'a> {
     pub fn interact_new_random_empire(&mut self) {
         if let Some((x, y)) = self.find_free_earth() {
             if let Some((idx, empire)) = self.empires.iter_mut().enumerate().find(|(_idx, e)| e.is_none()) {
-                *empire = Some(Empire{ name: format!("Empire {}", idx+2) });
-                self.states[y][x] = (idx+2) as STATE;
+                let state = (idx + 2) as STATE;
+                *empire = Some(Empire{ id: state, name: format!("Empire {}", state) });
+                self.states[y][x] = state;
                 println!("Empire generated")
             } else {
                 eprintln!("No free empire slot for new empire");
             }
         } else {
             eprintln!("No free earth for new empire");
+        }
+    }
+
+    pub fn get_empire_by_pos(&self, pos: Vector2) -> Option<Empire> {
+        // Invert the scaling, apply origin offset and scale for the algo
+        let x = (pos.x - 0.5*self.geo.hex_width()) / (self.geo.size * f32::sqrt(3.0));
+        let y = (-pos.y+ 0.5*self.geo.hex_height()) / (self.geo.size * f32::sqrt(3.0)) ;
+        // Cartesian to Hex - Apply Charles Chamber algo https://www.redblobgames.com/grids/hexagons/more-pixel-to-hex.html#charles-chambers
+        let temp = f32::floor(x + f32::sqrt(3.0) * y + 1.0);
+        let q = f32::floor((f32::floor(2.0 * x + 1.0) + temp) / 3.0) as isize;
+        let r = f32::floor((temp + f32::floor(-x + f32::sqrt(3.0) * y + 1.0)) / 3.0) as isize;
+        let o = AxialCoord{ q, r: -r }.offset();
+        if o.x < 0 || o.x >= self.geo.cols as isize || o.y < 0 || o.y >= self.geo.rows as isize {
+            println!("No state found");
+            return None;
+        }
+        let state = self.states[o.y as usize][o.x as usize];
+        if state > EARTH {
+            println!("Empire with state {}", state);
+            self.empires.get(state as usize-2)?.clone()
+        } else {
+            println!("No empire");
+            None
         }
     }
 }
@@ -212,6 +240,64 @@ fn my_camera_update(camera: &mut Camera2D, rl: &mut RaylibHandle, s: &CameraSett
     camera.zoom = f32::exp(camera_ln);
 }
 
+#[derive(Clone)]
+enum OverlayState {
+    NotClicked,
+    Clicked{
+        when: Instant,
+        mouse_pos: Vector2,
+        empire_id: STATE  // TODO: Keep copy of ID into Empire and use that around
+    }
+}
+
+struct Overlay {
+    pub timeout: Duration,
+    state: OverlayState,
+}
+
+impl Overlay {
+    fn new(timeout: Duration) -> Self {
+        Self{ timeout, state: NotClicked }
+    }
+
+    fn draw_overlay(&mut self, d: &mut RaylibDrawHandle, sim: &HexSimulation, camera: &Camera2D) {
+        use OverlayState::*;
+        // QUESTION: Can be split into interact + draw
+        // INTERACT with state
+        let now = Instant::now();
+        if let Clicked{when, ..} = &self.state {
+            if now - *when > self.timeout {
+                self.state = NotClicked;
+            }
+        }
+        if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+            let mouse = d.get_mouse_position();
+            let empire = sim.get_empire_by_pos(d.get_screen_to_world2D(mouse, camera));
+            if let Some(e) = empire {
+                println!("Clicked");
+                self.state = Clicked {
+                    when: now,
+                    mouse_pos: mouse,
+                    empire_id: e.id,
+                };
+            }
+        }
+        // DRAW based on state
+        if let Clicked{ mouse_pos, empire_id, .. } = &self.state {
+            if let Some(Some(e)) = sim.empires.get((empire_id-2) as usize) {
+                let x = mouse_pos.x.round() as i32;
+                let y = mouse_pos.y.round() as i32;
+                d.draw_rectangle(x, y-20, 60, 20, Color::RAYWHITE);
+                d.draw_rectangle_lines(x, y-20, 60, 20, Color::BLACK);
+                d.draw_text(e.name.as_str(), x+4, y-20+10, 8, Color::BLACK);
+            } else {
+                eprintln!("Invalid overlay state?");
+            }
+        }
+    }
+}
+
+
 fn main() {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -231,13 +317,7 @@ fn main() {
         100,
         50.0
     );
-    let mut sim = HexSimulation::new(&geo, &[2], &[3,5]); //no B3/S2,3 but B2/S3,5
-    // let mut rng = rand::rng();
-    // for row in sim.states.iter_mut() {
-    //     for s in row.iter_mut() {
-    //         *s = if rng.random::<f32>() < 0.3 { 1 } else { 0 };
-    //     }
-    // }
+    let mut sim = HexSimulation::new(&geo);
 
     let rect = geo.rect();
 
@@ -249,13 +329,16 @@ fn main() {
     };
 
     let camera_settings = CameraSettings{
-        pos_speed: 200.0,
+        pos_speed: 240.0,
         start: Vector2{x: rect.x, y: rect.y},
         end: Vector2{x: rect.x+rect.width, y: rect.y+rect.height},
         zoom_ln_speed: 6.0,
         zoom_ln_min: -3.0,
         zoom_ln_max: 1.0,
     };
+
+    // GUI State - Overlay
+    let mut overlay = Overlay::new(Duration::from_secs(3));
 
     rl.set_target_fps(60);
 
@@ -287,6 +370,10 @@ fn main() {
         }
 
         d.draw_fps(10, 10);
+
+        // Overlay
+        overlay.draw_overlay(&mut d, &sim, &camera);
+
         // Step
         // sim.step();
     }
