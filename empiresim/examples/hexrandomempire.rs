@@ -92,14 +92,19 @@ impl<'a> HexSimulation<'a> {
 }
 
 struct CameraSettings{
-    basespeed: f32,
+    pos_speed: f32,
     start: Vector2,
     end: Vector2,
+    zoom_ln_speed: f32,
+    zoom_ln_min: f32,
+    zoom_ln_max: f32,
 }
 
 //noinspection DuplicatedCode
 fn my_camera_update(camera: &mut Camera2D, rl: &mut RaylibHandle, s: &CameraSettings) {
-    let speed = s.basespeed / camera.zoom;
+    let frame_dt = rl.get_frame_time();
+    // Scale all speed on the effective frame DT to have uniform movement at all framerate
+    let speed = s.pos_speed / camera.zoom * frame_dt;
     let translation = Vector2::new(
         (rl.is_key_down(KeyboardKey::KEY_D) || rl.is_key_down(KeyboardKey::KEY_RIGHT)) as i32 as f32 * speed -
             (rl.is_key_down(KeyboardKey::KEY_A) || rl.is_key_down(KeyboardKey::KEY_LEFT)) as i32 as f32 * speed,
@@ -116,9 +121,13 @@ fn my_camera_update(camera: &mut Camera2D, rl: &mut RaylibHandle, s: &CameraSett
 
     let mouse_wheel = rl.get_mouse_wheel_move();
     // Uses log scaling to provide consistent zoom speed
-    camera.zoom = f32::exp(camera.zoom.ln() + mouse_wheel * 0.1);
-    if camera.zoom > 3.0 { camera.zoom = 3.0; }
-    else if camera.zoom < 0.04 { camera.zoom = 0.04; }
+    let mut camera_ln = camera.zoom.ln() + mouse_wheel * s.zoom_ln_speed * frame_dt;
+    if camera_ln > s.zoom_ln_max {
+        camera_ln = s.zoom_ln_max;
+    } else if camera_ln < s.zoom_ln_min {
+        camera_ln = s.zoom_ln_min;
+    }
+    camera.zoom = f32::exp(camera_ln);
 }
 
 fn main() {
@@ -158,9 +167,12 @@ fn main() {
     };
 
     let camera_settings = CameraSettings{
-        basespeed: 40.0,
+        pos_speed: 200.0,
         start: Vector2{x: rect.x, y: rect.y},
         end: Vector2{x: rect.x+rect.width, y: rect.y+rect.height},
+        zoom_ln_speed: 6.0,
+        zoom_ln_min: -3.0,
+        zoom_ln_max: 1.0,
     };
 
     rl.set_target_fps(10);
@@ -185,17 +197,11 @@ fn main() {
         // 2D Draw
         {
             let mut d2d = d.begin_mode2D(camera);
-            // DRAW AXIS
-            // d2d.draw_line(0, 0, 100, 0, Color::RED);
-            // d2d.draw_line(0, 0, 0, 100, Color::BLUE);
-            // d2d.draw_rectangle_rec(Rectangle{x:100.0, y:0.0, width:5.0, height:5.0}, Color::RED);
-            // d2d.draw_rectangle_rec(Rectangle{x:0.0, y:100.0, width:5.0, height:5.0}, Color::BLUE);
-            // END DRAW AXIS
             sim.draw(&mut d2d);
         }
 
         d.draw_fps(10, 10);
-        // Step?
+        // Step
         sim.step();
     }
     // De-Initialization
