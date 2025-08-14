@@ -6,10 +6,9 @@ use raylib::math::{Vector2};
 use rand::{Rng};
 use raylib::prelude::*;
 use simulation::hex_geom::{AxialCoord, HexGeometry, OffsetCoord};
-use crate::OverlayState::NotClicked;
 
 fn empire_id_to_color(eid: u8) -> Color {
-    let layer: u8 = 40;
+    let layer: u8 = 13;
     let mut id = eid - 2;
     let mut sat = 1.0;
     let mut val = 1.0;
@@ -257,7 +256,7 @@ struct Overlay {
 
 impl Overlay {
     fn new(timeout: Duration) -> Self {
-        Self{ timeout, state: NotClicked }
+        Self{ timeout, state: OverlayState::NotClicked }
     }
 
     fn draw_overlay(&mut self, d: &mut RaylibDrawHandle, sim: &HexSimulation, camera: &Camera2D) {
@@ -285,11 +284,14 @@ impl Overlay {
         // DRAW based on state
         if let Clicked{ mouse_pos, empire_id, .. } = &self.state {
             if let Some(Some(e)) = sim.empires.get((empire_id-2) as usize) {
+                let font_size = 10;
+                let w = d.measure_text(e.name.as_str(), font_size)+10;
+                let h = font_size*2;
                 let x = mouse_pos.x.round() as i32;
                 let y = mouse_pos.y.round() as i32;
-                d.draw_rectangle(x, y-20, 60, 20, Color::RAYWHITE);
-                d.draw_rectangle_lines(x, y-20, 60, 20, Color::BLACK);
-                d.draw_text(e.name.as_str(), x+4, y-20+10, 8, Color::BLACK);
+                d.draw_rectangle(x, y-h, w, h, Color::RAYWHITE);
+                d.draw_rectangle_lines(x, y-h, w, h, Color::BLACK);
+                d.draw_text(e.name.as_str(), x+5, y-h+font_size/2, font_size, Color::BLACK);
             } else {
                 eprintln!("Invalid overlay state?");
             }
@@ -329,7 +331,7 @@ fn main() {
     };
 
     let camera_settings = CameraSettings{
-        pos_speed: 240.0,
+        pos_speed: 300.0,
         start: Vector2{x: rect.x, y: rect.y},
         end: Vector2{x: rect.x+rect.width, y: rect.y+rect.height},
         zoom_ln_speed: 6.0,
